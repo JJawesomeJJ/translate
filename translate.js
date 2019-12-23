@@ -1,4 +1,3 @@
-
 /*
  * Auth jjawesome
  * Description it is a tool to help you to easily translate Chinese website to English
@@ -17,21 +16,34 @@ function zh_translate_en() {
     function get_text_chinese(text)
     {
         var reg = /[\u4e00-\u9fa5]+/g;
-        return text.match(reg);
+        return sort(text.match(reg));
     }
-    this.start=function start_translate(url) {
-        var text_list = [];
-        var result = get_text_chinese($('html').html());
-        if (result != null && result.length > 0) {
-            for (var i of result) {
-                text_list.push(i);
+    function sort(arr) {
+        var min;
+        for(var i=0;i<arr.length;i++){
+            for(var k=i;k<arr.length;k++){
+                if((arr[i].length)<(arr[k].length)){
+                    min=arr[i]
+                    arr[i]=arr[k];
+                    arr[k]=min;
+                }
             }
-            if(is_cache(result)==false) {
-                translate(text_list,url)
+        }
+        return arr;
+    }
+    this.start=function start_translate(url,callback) {
+        var text_list = [];
+        var result = get_text_chinese($('body').html());
+        if (result != null && result.length > 0) {
+            for (var i=0;i<result.length;i++) {
+                text_list.push(result[i]);
+            }
+            if(is_cache(result,callback)==false) {
+                translate(text_list,url,callback)
             }
         }
     }
-    function translate(params,url) {
+    function translate(params,url,callback) {
         var api =url;
         $.ajax({
             type: 'post',
@@ -42,15 +54,29 @@ function zh_translate_en() {
                 var local_info={};
                 local_info['sign']=md5(get_text_chinese($('body').html()));
                 local_info['data']=result;
-                localStorage.setItem(window.location.href,JSON.stringify(local_info));
-                translate_component(result);
+                if(result.length>0) {
+                    if(typeof(localStorage)=="undefined") {
+
+                    }
+                    else {
+                        localStorage.setItem(window.location.href, JSON.stringify(local_info));
+                    }
+                }
+                translate_component(result,callback);
             },
             error: function () {
 
             }
         });
     }
-    function is_cache(text) {
+    function is_cache(text,callback) {
+        if(typeof(localStorage)=="undefined") {
+            console.log("dsdsd");
+            return false;
+        }
+        else {
+
+        }
         var sign=md5(text);
         var url=window.location.href;
         var result=localStorage.getItem(url)
@@ -61,16 +87,26 @@ function zh_translate_en() {
         if(result['sign']!=sign){
             return false;
         }
-        translate_component(result['data']);
-        return  true;
+        translate_component(result['data'],callback);
+        return true;
     }
-    function translate_component(result) {
+    function translate_component(result,callback) {
         var html = $('body').html();
-        for (var i of result) {
-            html = html.replace(i['src'], i['dst']);
+        for (var i=0;i<result.length;i++) {
+            html = html.replace(result[i]['src'], result[i]['dst']);
         }
         try {
             $('body').html(html);
+            if(callback!=null){
+                callback();
+                if(typeof(localStorage)=="undefined") {
+
+                }
+                else {
+                    localStorage.setItem('current_language','en')
+                }
+
+            }
         }
         catch (e) {
 
